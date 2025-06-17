@@ -155,7 +155,7 @@ sub ingest-upload(QIngestUpload $dist, $user --> Result) is export {
     unless $meta<provides> ~~ Hash;
   my $path = sprintf '%s/', $name.substr(0, 1);
   $path ~= sprintf('%s/', $name.substr(1, 2)) if $name.chars >= 3;
-  $path ~= sprintf '%s.tar.gz', $key;
+  $path ~= sprintf '%s/%s.tar.gz', (S:g/<-[A..Za..z0..9_]+// given $name.subst('::', '_', :global)).uc, $key;
   my $escaped-ver  = (S:g/(<+[<>]>)/\\$0/ given $meta<version>);
   my $escaped-auth = (S:g/(<+[<>]>)/\\$0/ given $meta<auth>);
   my $dist-name = $meta<name>
