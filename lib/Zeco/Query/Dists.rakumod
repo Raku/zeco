@@ -173,7 +173,7 @@ sub ingest-upload(QIngestUpload $dist, $user --> Result) is export {
 
   return UnknownError.new(:message('Failed to send dist to permanent index, please try again in a few minutes'))
     unless $rc == 0;
-  my $rval = db.query($sql-i, $dist-name, $path, to-j($index-meta)).hash;
+  my $rval = db.query($sql-i, $dist-name, $path, $index-meta).hash;
   die 'Failed to index.' unless $rval<id>:exists;
 
   Success.new();
@@ -183,9 +183,9 @@ sub generate-full-meta(--> Result) is export {
   constant $sql-j = q:to/EOS/;
     SELECT meta
     FROM dists
-    WHERE deleted IS NULL
+    WHERE deleted IS NOT true
     ORDER BY created ASC;
   EOS
 
-  MetaIndex.new: index => db.query($sql-j).hashes.map({from-j($_<meta>)}); 
+  MetaIndex.new: index => db.query($sql-j).hashes.map({$_<meta>});
 }
