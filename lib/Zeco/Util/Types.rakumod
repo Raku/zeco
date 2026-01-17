@@ -141,6 +141,12 @@ class QGroupUserRole does QType is export {
   submethod BUILD(Str:D :$!group, Str:D :$!user, Str:D :$!role) { }
 };
 
+class QGroupUser does QType is export {
+  has Str $.user;
+  has Str $.group;
+  submethod BUILD(Str:D :$!group, Str:D :$!user) { }
+};
+
 class QGroup does QType is export {
   has Str $.group;
   submethod BUILD(Str:D :$!group) { }

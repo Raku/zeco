@@ -34,7 +34,7 @@ Methods for handling the processes around group management.
 
   Convenience method, not for use outside of Zeco::Query::*
 
-=head2 method is-group-admin(Str:D, Int:D --> Bool:D) 
+=head2 method is-group-admin(Str:D, Int:D --> Bool:D)
 
   Signature: Str:D - group name to check
              Int:D - the user id to check for admin role
@@ -52,9 +52,9 @@ Methods for handling the processes around group management.
            Success - the group can now upload dists and add/remove members.
 
   Checks:
-  - Checks if the group exists -> GroupExists 
+  - Checks if the group exists -> GroupExists
   - Email domain has MX records -> InvalidEmail
-  
+
   Creates an entry in the `users` table with password '-' (indicating a group).
   Adds the user as an admin to the created group.
 
@@ -68,31 +68,31 @@ Methods for handling the processes around group management.
            NotFound - the user in QGroupUserRole is not a member of the group
                       or ineligible for role change.
            SuccessFail - the role was changed but an email failed to send.
-           Success - the role was changed and the user was emailed an notice. 
+           Success - the role was changed and the user was emailed an notice.
 
   Use this method to alter user roles.
 
-=head2 method list-groups(Int:D --> Result) 
-  
+=head2 method list-groups(Int:D --> Result)
+
   Signature: Int:D - authenticated user id to list groups for
   Returns: GroupListing - list of groups the user belongs to
 
   Returns a string list of the groups the user belongs to.
 
-=head2 method leave-group(QGroup:D, Int:D --> Result) 
-  
+=head2 method leave-group(QGroup:D, Int:D --> Result)
+
   Signature: QGroup - the group information to leave
              Int:D - authenticated user id of the user leaving the group
   Returns: Success - user no longer belongs to the group.
            NotFound - the user is not a member of the group.
-                    - the user is the last admin of the group. 
+                    - the user is the last admin of the group.
 
   Removes any roles associated with the current user and group. If the user is
   the last member of the group and they are an admin then this operation will
   fail. To effectively abandon the group a user must first demote themselves to
   a `member` and then leave the group.
 
-=head2 method invite-groups(QGroupUserRole:D, Int:D --> Result) 
+=head2 method invite-groups(QGroupUserRole:D, Int:D --> Result)
 
   Signature: QGroupUserRole - the group information containing
                               - invited user's email
@@ -107,7 +107,7 @@ Methods for handling the processes around group management.
 
   Makes a group invite for a user to accept or reject.
 
-=head2 method accept-invite-groups(QGroup:D, Int:D --> Result) 
+=head2 method accept-invite-groups(QGroup:D, Int:D --> Result)
 
   Signature: QGroup - group information the user is accepting an invite for
              Int:D  - authenticated user id accepting the invite
@@ -117,17 +117,17 @@ Methods for handling the processes around group management.
 
   Modifies a group invite to a user role.
 
-=head2 method pending-invites-groups(Int:D --> Result) 
+=head2 method pending-invites-groups(Int:D --> Result)
 
   Signature: Int:D  - authenticated user id to retrieve invites for
   Returns: GroupListing - groups and roles the user is invited to become a
-                          part of. 
+                          part of.
 
   Lists group invites for the given user.
 
-=head2 method members-groups(QGroup:D --> Result) 
+=head2 method members-groups(QGroup:D --> Result)
 
-  Signature: QGroup - the group to list members of 
+  Signature: QGroup - the group to list members of
   Returns: GroupListing - groups and roles of users in the requested group.
 
   Lists group members and roles for a given group. All group information
@@ -143,6 +143,14 @@ Methods for handling the processes around group management.
 
   Updates the group's public meta data.
 
+=head2 method delete-member-from-group(QGroupUser:D, Int:D --> Result)
+
+  Signature: QGroupUser - username of the user to remove from the group
+             Int:D - user id making the request.  must be an admin
+  Returns: NotFound - group or user wasn't found.
+           InsufficientRole - requesting user is not an admin of the group.
+           Success - the user was removed from the group
+
 =end pod
 
 sub group-name-to-id(Str:D $group-name --> Int) is export {
@@ -152,7 +160,7 @@ sub group-name-to-id(Str:D $group-name --> Int) is export {
     WHERE username = $1
       AND password = '-';
   EOS
-  
+
   db.query($sql, $group-name).hash<user_id> // Int;
 }
 
@@ -304,7 +312,7 @@ sub list-groups(Int:D $user-id --> Result) is export {
     WHERE gm.member_id = $1;
   EOS
   my $res = db.query($sql, $user-id).hashes;
-  GroupListing.new(payload=>$res); 
+  GroupListing.new(payload=>$res);
 }
 
 sub invite-groups(QGroupUserRole:D $qg, Int:D $user-id --> Result) is export {
@@ -320,7 +328,7 @@ sub invite-groups(QGroupUserRole:D $qg, Int:D $user-id --> Result) is export {
   EOS
   constant $sql = q:to/EOS/;
     INSERT INTO org_invites (group_id, member_id, role, expires)
-    VALUES ((SELECT user_id 
+    VALUES ((SELECT user_id
              FROM users
              WHERE username = $1
                AND password = '-'
@@ -331,7 +339,7 @@ sub invite-groups(QGroupUserRole:D $qg, Int:D $user-id --> Result) is export {
     RETURNING member_id, org_invite_id;
   EOS
 
-  my $guid = group-name-to-id($qg.group); 
+  my $guid = group-name-to-id($qg.group);
   my $u = db.query($sql-check, $guid, $qg.user).hash;
   return NotFound.new unless $u;
   return ExistingGroupMember.new if $u<r> ne '';
@@ -345,7 +353,7 @@ sub invite-groups(QGroupUserRole:D $qg, Int:D $user-id --> Result) is export {
     :id($ins<org_invite_id>.Str),
   ));
   return SuccessFail.new if $mesult != 0;
-  
+
   Success.new;
 }
 
@@ -389,11 +397,11 @@ sub accept-invite-groups(QGroup:D $qg, Int:D $user-id --> Result) is export {
 
   my @res = db.query($sql-s, $user-id, $qg.group, DateTime.now.posix).hashes;
   return NotFound.new unless +@res;
-  
+
   my $already-exists = db.query($sql-g, @res[0]<group_id>, @res[0]<member_id>).hash<cnt>;
   return UnknownError.new: message => 'User is already a member of that group'
     if $already-exists > 0;
-  
+
   my $db = db.db;
   my $success = False;
   $db.begin;
@@ -413,7 +421,7 @@ sub accept-invite-groups(QGroup:D $qg, Int:D $user-id --> Result) is export {
 
     $success = True;
   }
-  
+
   $db.finish;
   $success ?? Success.new !! UnknownError.new;
 }
@@ -474,7 +482,7 @@ sub update-meta-groups(QGroupMeta:D $qg, Int:D $user-id --> Result) is export {
     DELETE FROM user_meta
     WHERE user_meta_id = $1;
   EOS
-  
+
   my $db = db.db;
   $db.begin;
 
@@ -506,10 +514,25 @@ sub update-meta-groups(QGroupMeta:D $qg, Int:D $user-id --> Result) is export {
     }
     $db.commit;
   };
-  
+
   $db.finish;
 
   return UnknownError.new unless $ok;
+
+  Success.new;
+}
+
+sub delete-member-from-group(QGroupUser:D $gu, Int:D $user-id --> Result) is export {
+  return InsufficientRole.new unless is-group-admin($qg.group, $user-id);
+
+  constant $sql-delete = q:to/EOS/;
+    DELETE FROM group_members
+    WHERE group_id = (SELECT id FROM users WHERE username = $1 AND password = '-' LIMIT 1)
+    AND member_id = (SELECT id FROM users WHERE username = $2 LIMIT 1);
+  EOS
+
+  my $deleted = db.query($sql-delete, $gu.group, $gu.user);
+  return NotFound.new if $deleted == 0;
 
   Success.new;
 }

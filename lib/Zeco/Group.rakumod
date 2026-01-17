@@ -58,6 +58,12 @@ Contains the webserver routes for creating, leaving, and maintaining groups.
   Updates a group's public meta data as requested by JSON body (QGroupMeta).
   The authorized user must be a group admin to perform this action.
 
+=head2 DELETE /groups/member
+
+  Removes a user from a group. Requires the calling user to be an administrator
+  for the group. Both `user` and `group` are required query string (QGroupUser)
+  parameters.
+
 =end pod
 
 # create a group
@@ -113,6 +119,13 @@ post('/groups/members', -> $req, $res {
     $req.stash<body>,
   ).render($res);
 }, [body-parser(QGroup)]);
+
+delete('/groups/member', -> $req, $res {
+  delete-member-from-group(
+    $req.stash<query>,
+    $req.stash<user><user_id>,
+  ).render($res);
+}, [&authorize, query-parser(QGroupUser)]);
 
 post('/groups/meta', -> $req, $res {
   update-meta-groups(
