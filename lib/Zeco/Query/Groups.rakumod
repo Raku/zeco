@@ -523,15 +523,15 @@ sub update-meta-groups(QGroupMeta:D $qg, Int:D $user-id --> Result) is export {
 }
 
 sub delete-member-from-group(QGroupUser:D $gu, Int:D $user-id --> Result) is export {
-  return InsufficientRole.new unless is-group-admin($qg.group, $user-id);
+  return InsufficientRole.new unless is-group-admin($gu.group, $user-id);
 
   constant $sql-delete = q:to/EOS/;
     DELETE FROM group_members
-    WHERE group_id = (SELECT id FROM users WHERE username = $1 AND password = '-' LIMIT 1)
-    AND member_id = (SELECT id FROM users WHERE username = $2 LIMIT 1);
+    WHERE group_id = (SELECT user_id FROM users WHERE username = $1 AND password = '-' LIMIT 1)
+    AND member_id = (SELECT user_id FROM users WHERE username = $2 AND user_id <> $3 LIMIT 1);
   EOS
 
-  my $deleted = db.query($sql-delete, $gu.group, $gu.user);
+  my $deleted = db.query($sql-delete, $gu.group, $gu.user, $user-id);
   return NotFound.new if $deleted == 0;
 
   Success.new;
