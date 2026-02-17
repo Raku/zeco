@@ -1,0 +1,1 @@
+ALTER TABLE org_invites ADD COLUMN org_invite_id SERIAL PRIMARY KEY;

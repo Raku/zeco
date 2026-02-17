@@ -47,6 +47,8 @@
     "migrations/003.down.sql",
     "migrations/004.up.sql",
     "migrations/004.down.sql",
+    "migrations/005.up.sql",
+    "migrations/005.down.sql",
     "erd.dbml",
     "test-fez-config.json",
     "test-fez-eco-config.toml"
@@ -54,5 +56,5 @@
   "test-depends": [
     "fez:auth<zef:tony-o>"
   ],
-  "version": "0.0.3"
+  "version": "0.0.4"
 }
